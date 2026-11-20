@@ -1,0 +1,117 @@
+---
+title: "Presentation 2"
+author: "Charles Cowart"
+format: html
+embed-resources: true
+---
+
+```{r}
+#| label: setup
+#| message: false
+
+library(tidyverse)
+library(gt)
+big_tech_stock_prices <- read_csv("big_tech_stock_prices.csv")
+theme_set(theme_minimal())
+```
+
+
+```{r}
+glimpse(big_tech_stock_prices)
+```
+
+
+
+```{r}
+ggplot(big_tech_stock_prices,
+       aes(x = date,
+           y = close,
+           color = stock_symbol)) +
+  geom_line(show.legend = FALSE) +
+  facet_wrap(~stock_symbol) +
+  labs(title = "Big Tech Stock Price Trends",
+       x = "Date",
+       y = "Closing Price ($)")
+```
+
+
+```{r}
+big_tech_stock_prices |> 
+  count(stock_symbol, name = "Observations") |> 
+  rename(`Stock Symbol` = stock_symbol) |> 
+  gt() |> 
+  tab_header(title = "Number of Observations")
+```
+
+
+
+
+```{r}
+annual_returns <- big_tech_stock_prices |> 
+  mutate(year = year(date)) |> 
+  arrange(date) |> 
+  summarise(start_price = first(close),
+            end_price = last(close),
+            annual_return = ((end_price - start_price) / start_price) * 100,
+            .by = c(stock_symbol, year)) |> 
+  summarise(avg_annual_return = mean(annual_return),
+            .by = year)
+```
+
+```{r}
+ggplot(annual_returns, 
+       aes(x = year, 
+           y = avg_annual_return)) +
+  geom_line() +
+  geom_point() +
+  geom_text(aes(label = round(avg_annual_return, 2)), 
+            vjust = -.5) +
+  geom_hline(yintercept = 0,
+             linetype = "dashed",
+             color = "red",
+             alpha = 0.5) +
+  labs(title = "Average Annual Return of Big Tech Stocks",
+       x = "Year",
+       y = "Average Annual Return (%)")
+```
+
+
+```{r}
+big_tech_stock_prices |> 
+  arrange(date) |> 
+  summarise(start_price = first(close),
+            end_price = last(close),
+            annual_return = round((((end_price - start_price) / start_price) * 100 / 13), 2),
+            .by = stock_symbol) |> 
+  rename(`Stock Symbol` = stock_symbol,
+         `Annual Return (%)` = annual_return) |> 
+  arrange(desc(`Annual Return (%)`)) |> 
+  gt() |> 
+  tab_header(title = "Big Tech Annualized Returns") |> 
+  cols_align(align = "center")
+```
+
+
+
+
+```{r}
+big_tech_stock_prices |> 
+  mutate(year = year(date)) |> 
+  filter(year == 2022) |> 
+  arrange(date) |> 
+  summarise(start_price = first(close),
+            end_price = last(close),
+            total_return = round(((end_price - start_price) / start_price) * 100, 2),
+            .by = stock_symbol) |> 
+  rename(`Stock Symbol` = stock_symbol,
+         `Start Price` = start_price,
+         `End Price` = end_price,
+         `Total Return (%)` = total_return) |> 
+  arrange(desc(`Total Return (%)`)) |> 
+  gt() |> 
+  tab_header(title = "Total Return by Company (2022)")
+```
+
+
+
+
